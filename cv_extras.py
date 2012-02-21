@@ -25,6 +25,7 @@ class DisjointRegions(disjoint_sets.DisjointSets):
             self.maxX = x
             self.minY = y
             self.maxY = y
+            self.children = []
 
         def getRegionID(self):
             return self.getRootSet().id
@@ -66,6 +67,25 @@ class DisjointRegions(disjoint_sets.DisjointSets):
 
         def center(self):
             return ((self.getMaxX()+self.getMinX())/2 , (self.getMaxY()+self.getMinY())/2)
+
+        def contains(self, other):
+            contains = (self.minX <= other.minX)
+            contains = contains and (self.maxX >= other.maxX)
+            contains = contains and (self.minY <= other.minY)
+            contains = contains and (self.maxY >= other.maxY)
+            return contains
+
+        def isConnected(self):
+            return len(self.children) == 0
+
+        def isChildrenConnected(self):
+            for child in self.children:
+                if not child.isConnected():
+                    return False
+            return True
+
+        def __repr__(self):
+            return "bounding box = (%i, %i), (%i, %i) with %i children" % (self.minX, self.minY, self.maxX, self.maxY, len(self.children))
 
 """
 # Labels which belong together
@@ -157,6 +177,33 @@ def partiallyLabel(src):
 
     return regionsGrid, allRegions
 
+# recursive algorithm
+# to create a Trea of all the regions
+# returns a list of top level regions
+def buildRegionsTree(regions):
+    previousRegions = []
+    for region in regions:
+        currentRegions = []
+        containerFound = False
+        for previousRegion in previousRegions:
+            if previousRegion.contains(region):
+                previousRegion.children.append(region)
+                containerFound = True
+                break
+            elif region.contains(previousRegion):
+                region.children += [previousRegion] + previousRegion.children
+                previousRegion.children = []
+            else:
+                currentRegions.append(previousRegion)
+        if not containerFound:
+            currentRegions.append(region)
+            previousRegions = currentRegions
+
+    for region in previousRegions:
+        region.children = buildRegionsTree(region.children)
+
+    return previousRegions
+
 def simpleHash256(value):
     return 991 * (349 + value) % 256
 
@@ -167,12 +214,14 @@ def completeLabels(regionsGrid, dest):
 
 def drawRectangles(regions, dest):
     for region in regions:
-        cv.Rectangle(dest, (region.minX, region.minY), (region.maxX, region.maxY), simpleHash256(2*region.id), 2, cv.CV_AA)
+        if region.isChildrenConnected():
+            cv.Rectangle(dest, (region.minX, region.minY), (region.maxX, region.maxY), simpleHash256(2*region.id), 2, cv.CV_AA)
             
 def labelImage(src, dest):
     regionsGrid, regions = partiallyLabel(src)
     print len(regions.getAllRegions())
     completeLabels(regionsGrid, dest)
+    buildRegionsTree(regions.getAllRegions())
     drawRectangles(regions.getAllRegions(), dest)
             
 def imageMax(image):
