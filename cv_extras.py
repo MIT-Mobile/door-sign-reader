@@ -1,5 +1,6 @@
 import cv
 import disjoint_sets
+import clusters_lib
 
 class DisjointRegions(disjoint_sets.DisjointSets):
     def __init__(self):
@@ -68,80 +69,12 @@ class DisjointRegions(disjoint_sets.DisjointSets):
         def center(self):
             return ((self.getMaxX()+self.getMinX())/2 , (self.getMaxY()+self.getMinY())/2)
 
-        def contains(self, other):
-            contains = (self.minX <= other.minX)
-            contains = contains and (self.maxX >= other.maxX)
-            contains = contains and (self.minY <= other.minY)
-            contains = contains and (self.maxY >= other.maxY)
-            return contains
-
-        def isConnected(self):
-            return len(self.children) == 0
-
-        def isChildrenConnected(self):
-            for child in self.children:
-                if not child.isConnected():
-                    return False
-            return True
+        def size(self):
+            return 1.0 * max(self.getMaxX()-self.getMinX(), self.getMaxY()-self.getMinY())
 
         def __repr__(self):
-            return "bounding box = (%i, %i), (%i, %i) with %i children" % (self.minX, self.minY, self.maxX, self.maxY, len(self.children))
+            return "bounding box = (%i, %i), (%i, %i)" % (self.minX, self.minY, self.maxX, self.maxY)
 
-"""
-# Labels which belong together
-# i.e. labels that have roughly similar size and color
-class SimilarLabels:
-
-    def __init__(self, firstLabel):
-        self.labels = [firstLabel]
-
-    def addLabel(self, label):
-        self.labels.append(label)
-
-    def averageArea(self):
-        total = 0
-        for label in labels:
-            total += label.area()
-        return (1.0 * total / len(labels))
-
-    # this method tries to predict
-    # if passed in label belongs
-    # with the labels already passed in
-    def labelMatches(self, label):
-        # first descriminate based on size
-        sizeRatio = label.area() / self.averageArea()
-        if sizeRatio > 3 or sizeRatio < (1./3):
-           return false
-
-        # only join objects of the same color
-        if labels[0].color != label.color
-           return false 
-         
-        return false       
-
-
-    # Attempts to guess at a group of labels
-    # which are aligned
-    def alignedLabels(self):
-        averageSlope = 0
-        averageYIntercept = 0
-        labelsCount = len(self.labels)
-        for i in range(labelsCount)):
-            for j in range(labelsCount):
-                if i == j:
-                    continue
-                
-                center1 = self.labels[i].center()
-                center2 = self.labels[j].center()
-                slope = 1. * (center2[1] - center1[1]) / (center2[0] - center1[0])
-                yIntercept = center1[1] - slope * center1[0]
-
-                averageSlope += slope
-                averageYIntercept += yIntercept
-
-        averageSlope = averageSlope / labelsCount / (labelsCount-1)
-        averageYIntercept = averageYIntercept / labelsCount / (labelsCount-1)
-"""
 
 def partiallyLabel(src):
 
@@ -177,52 +110,45 @@ def partiallyLabel(src):
 
     return regionsGrid, allRegions
 
-# recursive algorithm
-# to create a Trea of all the regions
-# returns a list of top level regions
-def buildRegionsTree(regions):
-    previousRegions = []
-    for region in regions:
-        currentRegions = []
-        containerFound = False
-        for previousRegion in previousRegions:
-            if previousRegion.contains(region):
-                previousRegion.children.append(region)
-                containerFound = True
-                break
-            elif region.contains(previousRegion):
-                region.children += [previousRegion] + previousRegion.children
-                previousRegion.children = []
-            else:
-                currentRegions.append(previousRegion)
-        if not containerFound:
-            currentRegions.append(region)
-            previousRegions = currentRegions
-
-    for region in previousRegions:
-        region.children = buildRegionsTree(region.children)
-
-    return previousRegions
-
 def simpleHash256(value):
     return 991 * (349 + value) % 256
 
 def completeLabels(regionsGrid, dest):
     for y in range(dest.rows):
         for x in range(dest.cols):
-            dest[y, x] = simpleHash256(regionsGrid[y][x].getRegionID())
+            dest[y, x] = simpleHash256(7 * regionsGrid[y][x].getRegionID())
 
-def drawRectangles(regions, dest):
-    for region in regions:
-        if region.isChildrenConnected():
+def drawRectangles(clusters, dest):
+    for cluster in clusters:
+        for region in cluster.regions:
             cv.Rectangle(dest, (region.minX, region.minY), (region.maxX, region.maxY), simpleHash256(2*region.id), 2, cv.CV_AA)
-            
+    
+clusterMinSize = 3    
+def filterClusters(clusters):
+    maxChiSquare = 0.01
+    filteredClusters = []
+    for cluster in clusters:
+        if len(cluster.regions) >= clusterMinSize:
+            if cluster.yChiSquare() < maxChiSquare:
+                filteredClusters.append(cluster)
+    return filteredClusters
+
 def labelImage(src, dest):
     regionsGrid, regions = partiallyLabel(src)
-    print len(regions.getAllRegions())
+
     completeLabels(regionsGrid, dest)
-    buildRegionsTree(regions.getAllRegions())
-    drawRectangles(regions.getAllRegions(), dest)
+    allRegions = regions.getAllRegions()
+    allRegions.sort(cmp=regionCmp, reverse=True)
+    largestRegions = allRegions[0:75]
+
+    clusters = clusters_lib.findClusters(largestRegions)
+    clusters = filterClusters(clusters)
+    #drawRectangles(clusters, dest)
+    for region in clusters:
+            cv.Rectangle(dest, (region.minX, region.minY), (region.maxX, region.maxY), simpleHash256(2*region.minY), 2, cv.CV_AA)
+
+    return clusters
+
             
 def imageMax(image):
     max = -1
@@ -241,3 +167,6 @@ def count(image):
                 max = image[y, x]
                 count += 1
     return count
+
+def regionCmp(regionA, regionB):
+    return cmp(regionA.size(), regionB.size())
