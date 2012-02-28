@@ -86,8 +86,13 @@ cv.SaveImage('labeled.png', labeled)
 cluster_index = 0
 for cluster in clusters:
     padding = 5
-    rect = (cluster.minX-padding, cluster.minY-padding, 
-        cluster.maxX-cluster.minX+2*padding, cluster.maxY - cluster.minY + 2*padding)
+    left = max(cluster.minX-padding, 0)
+    top = max(cluster.minY-padding, 0)
+    right = min(cluster.maxX+padding, originalImage.width)
+    bottom = min(cluster.maxY+padding, originalImage.height)
+
+    rect = (left, top, 
+             right - left, bottom - top)
     subMat = cv.GetSubRect(noPerspective, rect)
     cv.SaveImage("text_candidate_" + str(cluster_index) + ".png", subMat)
     cluster_index += 1
