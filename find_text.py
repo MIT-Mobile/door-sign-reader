@@ -4,7 +4,12 @@ import cv
 import cv_extras
 import vanishing_points
 import sys
+import os
 import math
+
+outputDir = sys.argv[2]
+if not os.path.exists(outputDir):
+    os.mkdir(outputDir)
 
 originalImage = cv.LoadImage(sys.argv[1])
 gray = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8UC1)
@@ -15,7 +20,7 @@ noPerspective = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8U
 cv.CvtColor(originalImage, gray, cv.CV_RGB2GRAY)
 
 cv.Canny(gray, edges, 50, 100)
-cv.SaveImage('edges.png', edges)
+cv.SaveImage(outputDir + '/edges.png', edges)
 
 storage = cv.CreateMemStorage(512)
 
@@ -44,7 +49,7 @@ if lineSets == None:
 # draw lines
 for line in lines:
     cv.Line(linesMat, line[0], line[1], 255, 1)
-cv.SaveImage('lines.png', linesMat)
+cv.SaveImage(outputDir + '/lines.png', linesMat)
 
 
 
@@ -70,7 +75,7 @@ fixedPoint = (originalImage.width / 2, originalImage.height / 2)
 perspectiveMat = vanishing_points.homographyMat(xVanishingPoint, yVanishingPoint, fixedPoint)
 cv.WarpPerspective(originalImage, noPerspective, perspectiveMat, cv.CV_WARP_INVERSE_MAP)
 
-cv.SaveImage('no_perspective.png', noPerspective)
+cv.SaveImage(outputDir + '/no_perspective.png', noPerspective)
 
 
 grayNoPerspective = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8UC1)
@@ -78,10 +83,10 @@ binaryNoPerspective = cv.CreateMat(originalImage.height, originalImage.width, cv
 labeled = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8UC1)
 cv.CvtColor(noPerspective, grayNoPerspective, cv.CV_RGB2GRAY)
 cv.Threshold(grayNoPerspective, binaryNoPerspective, 128, 255, cv.CV_THRESH_OTSU)
-cv.SaveImage('binary.png', binaryNoPerspective)
+cv.SaveImage(outputDir + '/binary.png', binaryNoPerspective)
 
 clusters = cv_extras.labelImage(binaryNoPerspective, labeled)
-cv.SaveImage('labeled.png', labeled)
+cv.SaveImage(outputDir + '/labeled.png', labeled)
 
 cluster_index = 0
 for cluster in clusters:
@@ -94,7 +99,7 @@ for cluster in clusters:
     rect = (left, top, 
              right - left, bottom - top)
     subMat = cv.GetSubRect(noPerspective, rect)
-    cv.SaveImage("text_candidate_" + str(cluster_index) + ".png", subMat)
+    cv.SaveImage(outputDir + "/text_candidate_" + str(cluster_index) + ".png", subMat)
     cluster_index += 1
 
 
