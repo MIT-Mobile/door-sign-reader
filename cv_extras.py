@@ -72,6 +72,12 @@ class DisjointRegions(disjoint_sets.DisjointSets):
         def size(self):
             return 1.0 * max(self.getMaxX()-self.getMinX(), self.getMaxY()-self.getMinY())
 
+        def width(self):
+            return 1.0 * (self.getMaxX()-self.getMinX())
+
+        def height(self):
+            return 1.0 * (self.getMaxY()-self.getMinY())
+
         def __repr__(self):
             return "bounding box = (%i, %i), (%i, %i)" % (self.minX, self.minY, self.maxX, self.maxY)
 
@@ -120,16 +126,21 @@ def completeLabels(regionsGrid, dest):
 
 def drawRectangles(clusters, dest):
     for cluster in clusters:
-        for region in cluster.regions:
+        for region in regions.regions:
             cv.Rectangle(dest, (region.minX, region.minY), (region.maxX, region.maxY), simpleHash256(2*region.id), 2, cv.CV_AA)
     
-clusterMinSize = 3    
+clusterMinWidthFactor = 1.5   
+clusterMinBlobCount = 3
 def filterClusters(clusters):
     maxChiSquare = 0.01
     filteredClusters = []
     for cluster in clusters:
-        if len(cluster.regions) >= clusterMinSize:
-            if cluster.yChiSquare() < maxChiSquare:
+        if len(cluster.regions) > 1:
+            # try to guess if there is enough letters
+            # in the region by using either blobs or width
+            if (len(cluster.regions) > clusterMinBlobCount or
+                cluster.width() >= cluster.height() * clusterMinWidthFactor):
+                
                 filteredClusters.append(cluster)
     return filteredClusters
 

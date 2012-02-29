@@ -1,3 +1,5 @@
+import math
+
 class Cluster:
     def __init__(self, region):
         self.regions = [region]
@@ -41,11 +43,23 @@ class Cluster:
             distance += (self.minY - region.maxY)
         return distance
 
-    def averageSize(self):
+    def alignment(self, region):
+        height = 1. * min(region.height(), self.maxY-self.minY)
+        topDiff = (region.maxY-self.maxY) / height
+        bottomDiff = (region.minY-self.minY) / height
+        return math.sqrt(topDiff*topDiff + bottomDiff*bottomDiff)
+
+    def averageArea(self):
         totalAccumulator = 0
         for region in self.regions:
-            totalAccumulator += region.size()
+            totalAccumulator += region.area()
         return 1. * totalAccumulator / len(self.regions)
+
+    def width(self):
+        return 1.0 * self.maxX - self.minX
+
+    def height(self):
+        return 1.0 * self.maxY - self.minY
 
     def yChiSquare(self):
         total = 0.0
@@ -56,19 +70,24 @@ class Cluster:
         total = total / len(self.regions)
         return total
 
-closenessFactor = 0.5
-sizeFactor = 3.0
+closenessFactor = 2.0
+alignmentFactor = 0.2
+areaFactor = 5.0
 
 def findClusters(regions):
     
     clusters = []
     for region in regions:
+        if region.height() == 0:
+            continue
+
         nearbyClusters = []
         farClusters = []
         for cluster in clusters:
-            if (cluster.distance(region) < closenessFactor * region.size() and
-                cluster.averageSize() / sizeFactor <= region.size() and
-                cluster.averageSize() * sizeFactor >= region.size()):
+            if (cluster.alignment(region) < alignmentFactor and
+                cluster.distance(region) < closenessFactor * region.height() and
+                cluster.averageArea() / areaFactor <= region.area() and
+                cluster.averageArea() * areaFactor >= region.area()):
 
                 nearbyClusters.append(cluster)
             else:
