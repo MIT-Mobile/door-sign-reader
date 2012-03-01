@@ -30,45 +30,52 @@ def lineSetCmp(x, y):
 
 def findLineSets(lines):
     lineSets = vanishing_points.lineSets(lines)
-    lineSets.sort(cmp=lineSetCmp, reverse=True)
-    if len(lineSets) < 2:
-        return None
-    for lineSet in lineSets[0:2]:
+    for lineSet in lineSets:
         if len(lineSet.lines) < 2:
             return None
-    return lineSets[0:2]
+    return lineSets
 
-houghThreshold = 150
-lines = cv.HoughLines2(edges, storage, cv.CV_HOUGH_PROBABILISTIC, 1, 0.005, houghThreshold, 60, 60)
-lineSets = findLineSets(lines)
-if lineSets == None:
-    houghThreshold = 75
-    lines = cv.HoughLines2(edges, storage, cv.CV_HOUGH_PROBABILISTIC, 1, 0.005, houghThreshold, 60, 60)
+houghThresholds = [150, 75, 35]
+for threshold in houghThresholds:
+    lines = cv.HoughLines2(edges, storage, cv.CV_HOUGH_PROBABILISTIC, 1, 0.005, threshold, 60, 60)
     lineSets = findLineSets(lines)
+    if lineSets != None:
+        break
+
+
+# might consider using angle binning
+# if an accurate perspective can't be found
+#angles = [0.] * 100
+#for line in lines:
+#    if abs(vanishing_points.angle(line) - math.pi/2) < math.pi/4:
+#        angle = vanishing_points.angle(line) - math.pi/2
+#        if angle < 0:
+#            angle += math.pi
+#    else:
+#        angle = vanishing_points.angle(line)
+#    binnedAngle = int(math.floor(angle / math.pi * 100))
+#    angles[binnedAngle] += 1
+#print angles
+
+xLines = lineSets[0].lines
+yLines = lineSets[1].lines
+
 
 # draw lines
-for line in lines:
-    cv.Line(linesMat, line[0], line[1], 255, 1)
+for line in xLines:
+    cv.Line(linesMat, line[0], line[1], 100, 1)
+for line in yLines:
+    cv.Line(linesMat, line[0], line[1], 200, 1)
+
 cv.SaveImage(outputDir + '/lines.png', linesMat)
-
-
-
-
-# try to figure out which set of lines is horizontal
-# versus vertical
-if abs(lineSets[0].angle() - math.pi/2) < math.pi/4:
-    yLines = lineSets[0].lines
-    xLines = lineSets[1].lines
-else:
-    yLines = lineSets[1].lines
-    xLines = lineSets[0].lines
-
 
 xIntersections = vanishing_points.intersections(xLines)
 yIntersections = vanishing_points.intersections(yLines)
 
 xVanishingPoint = vanishing_points.vanishingPoint(xLines)
 yVanishingPoint = vanishing_points.vanishingPoint(yLines)
+
+#print xVanishingPoint, yVanishingPoint
 
 # keep the center of the image invariant
 fixedPoint = (originalImage.width / 2, originalImage.height / 2)

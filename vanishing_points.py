@@ -7,38 +7,30 @@ def angle(line):
     if x2 - x1 != 0:
         angle = math.atan(1. * (y2 - y1) / (x2 - x1))
         if angle < 0:
-            angle = -angle
+            angle += math.pi 
         return angle
     else:
         return math.pi / 2
 
 
 class LineSet:
-    def __init__(self, line):
-        self.lines = [line]
-        self.totalAngle = angle(line)
-
-    def angle(self):
-        return self.totalAngle / len(self.lines)
+    def __init__(self):
+        self.lines = []
 
     def addLine(self, line):
         self.lines.append(line)
-        self.totalAngle += angle(line)
 
 def lineSets(lines):
+    xLines = LineSet()
+    yLines = LineSet()
     lineSets = []
     for line in lines:
-        lineFound = False
-        for lineSet in lineSets:
-            # with in 0.3 radians
-            if abs(angle(line) - lineSet.angle()) < 0.30:
-                lineSet.addLine(line)
-                lineFound = True
-                break
-        if not lineFound:
-            lineSets.append(LineSet(line))
-
-    return lineSets
+        # with in 45 degrees
+        if abs(angle(line) - math.pi/2) < math.pi/4:
+            yLines.addLine(line)
+        else:
+            xLines.addLine(line)
+    return [xLines, yLines]
 
 
 def intersections(lines):
@@ -61,12 +53,65 @@ def intersection(line1, line2):
 
     denominator = (y4 - y3)*(x2 - x1) - (x4 - x3)*(y2 - y1)
     # zero corresponds to parrelell lines
-    if denominator != 0:
+    
+    denominatorError = abs(y4-y3) + abs(x2-x1) + abs(x4-x3) + abs(y2 - y1) 
+    #print denominator, denominatorError
+    if lineSegmentDistance(line1, line2) < 10:
+        return None
+
+    if abs(denominator) >= 2 *denominatorError:
+    #if denominator != 0:
         numerator = ((x4 - x3)*(y1 - y3) - (y4 - y3)*(x1 - x3))
         u_a = 1. * numerator / denominator
-        return (x1 + u_a * (x2 - x1), y1 + u_a * (y2 - y1))
+        return (x1 + u_a * (x2 - x1), y1 + u_a * (y2 - y1), 1)
     else:
-        return None
+        deltaX = 1.0 * (x2 - x1)
+        deltaY = 1.0 * (y2 - y1)
+        # keep all angles near the positive x or positive y axis
+        if abs(deltaX) > abs(deltaY):
+            if deltaX < 0:
+                deltaX = - deltaX
+                deltaY = - deltaY
+        else:
+            if deltaY < 0:
+                deltaX = - deltaX
+                deltaY = - deltaY
+
+        norm = math.sqrt(deltaX * deltaX + deltaY * deltaY)
+        return (deltaX / norm, deltaY / norm, 0)
+
+# this isnt a precise notion of distance
+# just finds the vertex with the smallest distance
+# to the other line
+def lineSegmentDistance(line1, line2):
+    (point1, point2) = line1
+    (point3, point4) = line2
+
+    lineParams1 = lineParameters(line1)
+    lineParams2 = lineParameters(line2)
+    distances = [
+        distancePointToLine(point1, line2),
+        distancePointToLine(point2, line2),
+        distancePointToLine(point3, line1),
+        distancePointToLine(point4, line1),
+    ]
+    return min(distances)
+
+def distancePointToLine(point, line):
+    (a, b, c) = lineParameters(line)
+    return abs(a * point[0] + b * point[1] + c) / math.sqrt(a*a + b*b)
+
+# parameters of a line when given in the form
+# ax + by + c = 0
+def lineParameters(line):
+    ((x1, y1), (x2, y2)) = line
+    deltaX = x2 - x1
+    deltaY = y2 - y1
+    
+    a = deltaY
+    b = -deltaX
+    c = -x1 * deltaY + y1 * deltaX
+    return (a, b, c)
 
 def medianPoint(points):
     pointCount = len(points)
@@ -85,17 +130,22 @@ def medianPoint(points):
 
 def vanishingPoint(lines):
     vanishingPoints = intersections(lines)
-    if vanishingPoints:
-        point = medianPoint(vanishingPoints)
+    finitePoints = []
+    pointsAtInfinity = []
+    for point in vanishingPoints:
+        if point[2] == 0:
+            pointsAtInfinity.append(point)
+        else:
+            finitePoints.append(point)
+
+    print len(finitePoints), len(pointsAtInfinity)
+    if len(finitePoints) > 2 * len(pointsAtInfinity):
+        point = medianPoint(finitePoints)
         scale = getPointScale(point)
         return (point[0] / scale, point[1] / scale, 1 / scale)
     else:
-        # lines dont intersect, vanishing point must be at infinity
-        line = lines[0]
-        deltaX = line[1][0] - line[0][0]
-        deltaY = line[1][1] - line[0][1]
-        norm = math.sqrt(deltaX * deltaX + deltaY * deltaY)
-        return (deltaX / norm, deltaY / norm, 0)
+        point = medianPoint(pointsAtInfinity)
+        return (point[0], point[1], 0)
 
 # vp1 - vanishing point 1
 # vp2 - vanishing point 2
