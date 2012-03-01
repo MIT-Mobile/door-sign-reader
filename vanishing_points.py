@@ -55,12 +55,10 @@ def intersection(line1, line2):
     # zero corresponds to parrelell lines
     
     denominatorError = abs(y4-y3) + abs(x2-x1) + abs(x4-x3) + abs(y2 - y1) 
-    #print denominator, denominatorError
     if lineSegmentDistance(line1, line2) < 10:
         return None
 
     if abs(denominator) >= 2 *denominatorError:
-    #if denominator != 0:
         numerator = ((x4 - x3)*(y1 - y3) - (y4 - y3)*(x1 - x3))
         u_a = 1. * numerator / denominator
         return (x1 + u_a * (x2 - x1), y1 + u_a * (y2 - y1), 1)
@@ -138,7 +136,6 @@ def vanishingPoint(lines):
         else:
             finitePoints.append(point)
 
-    print len(finitePoints), len(pointsAtInfinity)
     if len(finitePoints) > 2 * len(pointsAtInfinity):
         point = medianPoint(finitePoints)
         scale = getPointScale(point)
