@@ -1,7 +1,7 @@
-#include <map>
-#include <list>
 #include <inttypes.h>
 
+#define MAX_PARTIAL_REGION_COUNT 1024
+#define MAX_UNIQUE_REGION_COUNT 512
 
 class ConnectedRegion {
     ConnectedRegion *linkedRegion;
@@ -15,7 +15,7 @@ class ConnectedRegion {
     int maxX, maxY;
     int color;
       
-    ConnectedRegion(uint16_t id, int x, int y, int color); 
+    void initialize(uint16_t id, int x, int y, int color); 
     
     void addPoint(int x, int y);    
     
@@ -29,27 +29,23 @@ class ConnectedRegion {
     uint16_t getRegionID();
 };
 
-typedef std::list<ConnectedRegion*> RegionsList;
-typedef std::map<uint16_t, ConnectedRegion*> RegionsMap;
-
 class ConnectedRegions {
     
     uint16_t nextID;
     
-    RegionsMap regionsMap;
-    RegionsList rootRegions;
+    ConnectedRegion allRegions[MAX_PARTIAL_REGION_COUNT];
     
-    uint16_t lastQueryID;
-    ConnectedRegion *lastQueryRegion;
+    ConnectedRegion *uniqueRegions[MAX_UNIQUE_REGION_COUNT];
+    int uniqueRegionsCount;
 
   public:
     ConnectedRegion* newRegion(int x, int y, int color);
     
-    RegionsList getAllRegions();
+    ConnectedRegion** getUniqueRegions();
+    
+    int getRegionsCount();
     
     ConnectedRegion* getRegionByID(uint16_t id);
     
     ConnectedRegions();
-    
-    ~ConnectedRegions();
 };

@@ -15,7 +15,7 @@ ConnectedRegion* ConnectedRegion::getRootRegion() {
 }
 
     
-ConnectedRegion::ConnectedRegion(uint16_t id, int x, int y, int color) {
+void ConnectedRegion::initialize(uint16_t id, int x, int y, int color) {
         linkedRegion = NULL;
         this->id = id;
         minX = x;
@@ -74,45 +74,46 @@ uint16_t ConnectedRegion::getRegionID() {
 // ConnectedRegions implementation
 
 ConnectedRegion* ConnectedRegions::newRegion(int x, int y, int color) {
-        ConnectedRegion* newRegion = new ConnectedRegion(nextID, x, y, color);
-        regionsMap[nextID] = newRegion;
+        if (nextID == MAX_PARTIAL_REGION_COUNT) {
+            nextID = MAX_PARTIAL_REGION_COUNT - 1;
+        }
+    
+        ConnectedRegion* newRegion = &(allRegions[nextID]);
+        newRegion->initialize(nextID, x, y, color);
         nextID++;
         return newRegion;
 }
     
-RegionsList ConnectedRegions::getAllRegions() {
-        if (rootRegions.size() == 0) {
-            RegionsMap::iterator regionsIterator;
-            for (regionsIterator = regionsMap.begin(); regionsIterator != regionsMap.end(); ++regionsIterator) {
-                ConnectedRegion *region = regionsIterator->second;
+ConnectedRegion** ConnectedRegions::getUniqueRegions() {
+        if (uniqueRegionsCount == 0) {
+            for (int regionID=0; regionID < nextID; regionID++) {
+                ConnectedRegion *region = &(allRegions[regionID]);
                 if (region->isRootRegion()) {
-                    rootRegions.push_back(region);
+                    uniqueRegions[uniqueRegionsCount] = region;
+                    uniqueRegionsCount++;
+                }
+                if (uniqueRegionsCount == MAX_UNIQUE_REGION_COUNT) {
+                    break;
                 }
             }
-            return rootRegions;
         } 
-        return rootRegions;
+        return uniqueRegions;
+}
+
+int ConnectedRegions::getRegionsCount() {
+    if (uniqueRegionsCount == 0) {
+        getUniqueRegions();
+    }
+    return uniqueRegionsCount;
 }
     
 ConnectedRegion* ConnectedRegions::getRegionByID(uint16_t id) {
-        if (id != lastQueryID || lastQueryRegion == NULL) {
-            lastQueryRegion = regionsMap[id];
-            lastQueryID = id;
-        } 
-        return lastQueryRegion;
-    }
+    return &(allRegions[id]);
+}
     
 ConnectedRegions::ConnectedRegions() {
         nextID = 0;
-        lastQueryID = 0;
-        lastQueryRegion = NULL;
-}
-    
-ConnectedRegions::~ConnectedRegions() {
-        RegionsMap::iterator regionsIterator;
-        for (regionsIterator = regionsMap.begin(); regionsIterator != regionsMap.end(); ++regionsIterator) {
-            delete regionsIterator->second;
-        }        
+        uniqueRegionsCount = 0;
 }
 
     
