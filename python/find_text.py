@@ -14,7 +14,7 @@ if not os.path.exists(outputDir):
 originalImage = cv.LoadImage(sys.argv[1])
 gray = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8UC1)
 edges = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8UC1)
-linesMat = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8UC1)
+linesMat = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8UC3)
 noPerspective = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8UC3)
 
 cv.CvtColor(originalImage, gray, cv.CV_RGB2GRAY)
@@ -31,11 +31,11 @@ def lineSetCmp(x, y):
 def findLineSets(lines):
     lineSets = vanishing_points.lineSets(lines)
     for lineSet in lineSets:
-        if len(lineSet.lines) < 2:
+        if len(lineSet.lines) <= 2:
             return None
     return lineSets
 
-houghThresholds = [150, 75, 35]
+houghThresholds = [150, 75, 35, 15, 7]
 for threshold in houghThresholds:
     lines = cv.HoughLines2(edges, storage, cv.CV_HOUGH_PROBABILISTIC, 1, 0.005, threshold, 60, 60)
     lineSets = findLineSets(lines)
@@ -63,17 +63,28 @@ yLines = lineSets[1].lines
 
 # draw lines
 for line in xLines:
-    cv.Line(linesMat, line[0], line[1], 100, 1)
+    cv.Line(linesMat, line[0], line[1], (200, 100, 0), 3)
 for line in yLines:
-    cv.Line(linesMat, line[0], line[1], 200, 1)
+    cv.Line(linesMat, line[0], line[1], (0, 200, 100), 3)
+
+xLines = vanishing_points.findVanishingLines(xLines, 720, 480)
+yLines = vanishing_points.findVanishingLines(yLines, 720, 480)
+
+for line in xLines:
+    cv.Line(linesMat, line[0], line[1], (0, 50, 200), 1)
+for line in yLines:
+    cv.Line(linesMat, line[0], line[1], (200, 100, 0), 1)
+
 
 cv.SaveImage(outputDir + '/lines.png', linesMat)
 
-xIntersections = vanishing_points.intersections(xLines)
-yIntersections = vanishing_points.intersections(yLines)
+#exit(0)
 
-xVanishingPoint = vanishing_points.vanishingPoint(xLines)
-yVanishingPoint = vanishing_points.vanishingPoint(yLines)
+#xIntersections = vanishing_points.intersections(xLines)
+#yIntersections = vanishing_points.intersections(yLines)
+
+xVanishingPoint = vanishing_points.vanishingPoint(xLines, (360, 240), 'x')
+yVanishingPoint = vanishing_points.vanishingPoint(yLines, (360, 240), 'y')
 
 #print xVanishingPoint, yVanishingPoint
 
@@ -81,6 +92,7 @@ yVanishingPoint = vanishing_points.vanishingPoint(yLines)
 fixedPoint = (originalImage.width / 2, originalImage.height / 2)
 perspectiveMat = vanishing_points.homographyMat(xVanishingPoint, yVanishingPoint, fixedPoint)
 cv.WarpPerspective(originalImage, noPerspective, perspectiveMat, cv.CV_WARP_INVERSE_MAP)
+#cv.WarpPerspective(linesMat, noPerspective, perspectiveMat, cv.CV_WARP_INVERSE_MAP)
 
 cv.SaveImage(outputDir + '/no_perspective.png', noPerspective)
 
