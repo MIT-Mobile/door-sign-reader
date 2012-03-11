@@ -44,14 +44,14 @@ void Lines::intersections(list<Vec4i> &lines, list<Homogeneous2dPoint> &points) 
             Vec4i line2 = *linesIterator2;
             Homogeneous2dPoint point;
             
-            if (intersection(line1, line2, point) == POINT_FOUND) {
+            if (intersection(line1, line2, point)) {
                 points.push_front(point);
             }
         }
     }
 }
 
-int Lines::intersection(Vec4i &line1, Vec4i &line2, Homogeneous2dPoint &point) {
+bool Lines::intersection(Vec4i &line1, Vec4i &line2, Homogeneous2dPoint &point) {
     int x1 = line1[0];
     int y1 = line1[1];
     int x2 = line1[2];
@@ -65,14 +65,11 @@ int Lines::intersection(Vec4i &line1, Vec4i &line2, Homogeneous2dPoint &point) {
     // zero corresponds to parallel lines
     int denominator = (y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1);
     
-    int denominatorError = abs(y4 - y3) + abs(x2 - x1) + abs(x4 - x3) + abs(y2 - y1);
-    
     if (lineSegmentDistance(line1, line2) < 10) {
-        return Lines::NO_POINT_FOUND;
+        return false;
     }
     
-    const int CONFIDENCE_FACTOR = 2;
-    if (abs(denominator) >= CONFIDENCE_FACTOR * denominatorError) {
+    if (denominator != 0) {
         float numerator = ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3));
         float u_a = numerator / denominator;
         point.setPoint(x1 + u_a * (x2 - x1), y1 + u_a * (y2 - y1));
@@ -97,7 +94,7 @@ int Lines::intersection(Vec4i &line1, Vec4i &line2, Homogeneous2dPoint &point) {
         point.setPointAtInfinity(deltaX / norm, deltaY / norm);
     }
     
-    return POINT_FOUND;    
+    return true;    
 }
 
 float Lines::lineSegmentDistance(Vec4i &line1, Vec4i &line2) {
@@ -131,6 +128,16 @@ float Lines::lineParameters(Vec4i &line, LineParameters *params) {
     params->c = -point1.x * deltaY + point1.y * deltaX;
 }
 
+float Lines::length(Vec4i &line) {
+  CvPoint point1 = cvPoint(line[0], line[1]);
+  CvPoint point2 = cvPoint(line[2], line[3]);
+
+  float deltaX = point2.x - point1.x;
+  float deltaY = point2.y - point1.y;
+
+  return sqrt((float)(deltaX*deltaX + deltaY*deltaY));
+}
+
 // Homogenouse2dPoint implementation
 void Homogeneous2dPoint::setPoint(float x, float y) {
     this->x = x;
@@ -146,11 +153,17 @@ void Homogeneous2dPoint::setPointAtInfinity(float x, float y) {
 }
 
 void Homogeneous2dPoint::rescale() {
-    float scale;
-    if (abs(x) > abs(y)) {
-        scale = x;
-    } else {
-        scale = y;
+    float scale = sqrt(x*x + y*y);
+    if (fabs(x) > fabs(y)) {
+        if (x < 0) {
+            scale = -1. * scale;
+        }
+    }
+    
+    if (fabs(x) <= fabs(y))  {
+       if (y < 0) {
+           scale = -1. * scale;
+       }
     }
 
     x = x / scale;

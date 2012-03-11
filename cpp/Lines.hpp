@@ -34,9 +34,6 @@ class LineParameters {
 
 class Lines {
   public:
-    const static int NO_POINT_FOUND = 0;
-    const static int POINT_FOUND = 1;
-    
     static float angle(Vec4i &line);
     
     static LineSets horizontalAndVertical(vector<Vec4i> &lines);
@@ -46,7 +43,7 @@ class Lines {
     /*
      *  returns NO_POINT_FOUND or POINT_FOUND
      */
-    static int intersection(Vec4i &line1, Vec4i &line2, Homogeneous2dPoint &point);
+    static bool intersection(Vec4i &line1, Vec4i &line2, Homogeneous2dPoint &point);
     
     static void intersections(list<Vec4i> &lines, list<Homogeneous2dPoint> &points);
     
@@ -56,6 +53,8 @@ class Lines {
      */
     static float lineSegmentDistance(Vec4i &line1, Vec4i &line2);
     
+    static float length(Vec4i &line);
+
   private:
     static float distancePointToLine(CvPoint &point, Vec4i &line);
     
