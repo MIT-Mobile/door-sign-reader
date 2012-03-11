@@ -108,17 +108,12 @@ def findVanishingLinesHelper(
     # find lines which intersect enough other lines
     # at far distances to be considered a vanishing line
     vanishingLines = []
-    def cmpVanishingMeasure(measure1, measure2):
-        return cmp(measure1.value, measure2.value)
     maxIntersectingLineCount = max(intersectingLineCounts)
 
     for lineIndex in range(lineCount):
         count = intersectingLineCounts[lineIndex]
         if count + math.sqrt(count) >= maxIntersectingLineCount:
             vanishingLines.append(lines[lineIndex])
-
-        #if vanishingPointCount[lineIndex] >= minimumVanishingPoints:
-        #   vanishingLines.append(lines[lineIndex])
 
     return vanishingLines
 
@@ -144,17 +139,13 @@ def intersection(line1, line2):
     denominator = (y4 - y3)*(x2 - x1) - (x4 - x3)*(y2 - y1)
     # zero corresponds to parrelel lines
     
-    denominatorError = abs(y4-y3) + abs(x2-x1) + abs(x4-x3) + abs(y2 - y1) 
     if lineSegmentDistance(line1, line2) < 10:
         return None
 
-    #if abs(denominator) >= 2 * denominatorError:
-
     if abs(denominator) > 0:
-        errPercent = 1. * denominatorError / denominator
         numerator = ((x4 - x3)*(y1 - y3) - (y4 - y3)*(x1 - x3))
         u_a = 1. * numerator / denominator
-        return (x1 + u_a * (x2 - x1), y1 + u_a * (y2 - y1), 1, errPercent)
+        return (x1 + u_a * (x2 - x1), y1 + u_a * (y2 - y1), 1)
     else:
         deltaX = 1.0 * (x2 - x1)
         deltaY = 1.0 * (y2 - y1)
@@ -231,7 +222,7 @@ def getMedian(values):
         
 def medianVanishingPoint(points, center, axis):       
     
-    def thetaCoordinate(x, y, w):
+    def thetaCoordinate(x, y):
         # return angles between 0 and 2pi,
         # with 0 being the x-axis
         if x == 0:
@@ -286,7 +277,7 @@ def medianVanishingPoint(points, center, axis):
             x -= center[xIndex]
             y -= center[yIndex]
 
-        theta = thetaCoordinate(x, y, point[2])
+        theta = thetaCoordinate(x, y)
         if isPositive and theta > math.pi:  
            theta -= math.pi
         elif not isPositive and theta < math.pi:
@@ -307,7 +298,6 @@ def medianVanishingPoint(points, center, axis):
     return (medianPoint[xIndex], medianPoint[yIndex], medianPoint[2])   
 
 def vanishingPoint(lines, center, axis):
-    #lines = findSimilarLines(lines)
     vanishingPoints = intersections(lines)
 
     if vanishingPoints:

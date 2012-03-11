@@ -19,7 +19,10 @@ noPerspective = cv.CreateMat(originalImage.height, originalImage.width, cv.CV_8U
 
 cv.CvtColor(originalImage, gray, cv.CV_RGB2GRAY)
 
-cv.Canny(gray, edges, 50, 100)
+
+cannyThreshold = 100
+cv.Canny(gray, edges, cannyThreshold, cannyThreshold/2)
+
 cv.SaveImage(outputDir + '/edges.png', edges)
 
 storage = cv.CreateMemStorage(512)
@@ -77,8 +80,6 @@ for line in yLines:
 
 
 cv.SaveImage(outputDir + '/lines.png', linesMat)
-
-#exit(0)
 
 #xIntersections = vanishing_points.intersections(xLines)
 #yIntersections = vanishing_points.intersections(yLines)

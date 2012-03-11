@@ -181,3 +181,11 @@ def count(image):
 
 def regionCmp(regionA, regionB):
     return cmp(regionA.size(), regionB.size())
+
+def totalArea(mat):
+    area = 0
+    for row in range(mat.rows):
+        for col in range(mat.cols):
+            if mat[row, col] > 0:
+                area += 1
+    return area
