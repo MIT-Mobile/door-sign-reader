@@ -6,8 +6,8 @@ using namespace cv;
 const double RADIUS_RESOLUTION = 1;        // in pixels
 const double ANGLE_RESOLUTION = 0.05;     // in radians
 const double MIN_LINE_LENGTH = 60;         // in pixels
-const double MAX_LINE_GAP = 60;            // in pixels
-const int POINTS_FOR_HOUGHP_LIMIT = 500;  
+const double MAX_LINE_GAP = 30;            // in pixels
+const int POINTS_FOR_HOUGHP_LIMIT = 2000;  
 
 enum Axis {X_AXIS, Y_AXIS};
 
@@ -59,7 +59,6 @@ struct LinePair {
 float inverseRadius(Homogeneous2dPoint &point, int centerX, int centerY);
 
 CorrectionType removePerspective(cv::Mat &image, cv::Mat &dest) {
-    timespec time1, time2, time3, time4, time5, time6;
     
     // edge detection    
     Mat edges(image.rows, image.cols, CV_8UC1);
@@ -78,8 +77,8 @@ CorrectionType removePerspective(cv::Mat &image, cv::Mat &dest) {
     
     // attempt Hough Line detection with various thresholds
     CvMemStorage *linesStorages = cvCreateMemStorage(512);
-    const int HOUGH_THRESHOLDS_COUNT = 2;
-    int houghThresholds[] = {15, 10};
+    const int HOUGH_THRESHOLDS_COUNT = 1;
+    int houghThresholds[] = {15, 7};
     
     // iteratively try to find lines, which can be used
     // to compute perspective
@@ -108,9 +107,11 @@ CorrectionType removePerspective(cv::Mat &image, cv::Mat &dest) {
     
     if (!xPointFound && !yPointFound) {
         //LOGD("no correction computable");
+        //drawLines(lineSets.verticalLines, dest);
+        //drawLines(lineSets.horizontalLines, dest);
         return NO_CORRECTION;
     }
-    
+
     
     // if only one point found, guess
     // the other point is simple a 90 degree rotation
@@ -145,7 +146,7 @@ CorrectionType removePerspective(cv::Mat &image, cv::Mat &dest) {
     drawLines(vanishingLines, image);
     */
     
-    warpPerspective(image, dest, map, dest.size(), CV_WARP_INVERSE_MAP);   
+    warpPerspective(image, dest, map, dest.size(), CV_WARP_INVERSE_MAP);  
 }
 
 bool areLinesCandidatesToComputePerspective(LineSets &lineSets) {
