@@ -1,12 +1,14 @@
+#ifndef CLASS_CONNECTED_REGIONS
+#define CLASS_CONNECTED_REGIONS
+
 #include <inttypes.h>
+#include <list>
 
 #define MAX_PARTIAL_REGION_COUNT 1024
 #define MAX_UNIQUE_REGION_COUNT 512
 
 class ConnectedRegion {
     ConnectedRegion *linkedRegion;
-    
-    ConnectedRegion* getRootRegion();
     
   public:
         
@@ -23,10 +25,15 @@ class ConnectedRegion {
     
     float width();
     float height();
+    float area();
     
     bool isRootRegion();
     
     uint16_t getRegionID();
+
+    ConnectedRegion* getRootRegion();
+
+    bool operator<(ConnectedRegion other);
 };
 
 class ConnectedRegions {
@@ -47,5 +54,9 @@ class ConnectedRegions {
     
     ConnectedRegion* getRegionByID(uint16_t id);
     
+    void getSortedRegions(std::list<ConnectedRegion> &regions, int maxRegionsCount);
+    
     ConnectedRegions();
 };
+
+#endif

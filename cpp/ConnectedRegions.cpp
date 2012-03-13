@@ -2,6 +2,8 @@
 
 // ConnectedRegion implementation
 
+using namespace std;
+
 ConnectedRegion* ConnectedRegion::getRootRegion() {
         if (linkedRegion == NULL) {
             return this;
@@ -36,17 +38,20 @@ void ConnectedRegion::addPoint(int x, int y) {
             if (y < minY) {
                 minY = y;
             }
-            if (y > maxX) {
-                maxX = y;
+            if (y > maxY) {
+                maxY = y;
             } 
+        } else {
+            getRootRegion()->addPoint(x, y);
         }
 }
     
 void ConnectedRegion::addRegion(ConnectedRegion *otherRegion) {
-        if (getRootRegion() != otherRegion->getRootRegion()) {
-            otherRegion->addPoint(minX, minY);
-            otherRegion->addPoint(maxX, maxY);
-            getRootRegion()->linkedRegion = otherRegion->getRootRegion();
+        ConnectedRegion *rootRegion = getRootRegion();
+        if (rootRegion != otherRegion->getRootRegion()) {
+            otherRegion->addPoint(rootRegion->minX, rootRegion->minY);
+            otherRegion->addPoint(rootRegion->maxX, rootRegion->maxY);
+            rootRegion->linkedRegion = otherRegion->getRootRegion();
         }
 }
     
@@ -58,10 +63,18 @@ float ConnectedRegion::height() {
         return (maxY - minY);
 }
 
+float ConnectedRegion::area() {
+    return width() * height();
+}
+
 bool ConnectedRegion::isRootRegion() {
         return (linkedRegion == NULL);
 }
     
+bool ConnectedRegion::operator<(ConnectedRegion other) {
+        return (area()) < (other.area());
+}
+
 uint16_t ConnectedRegion::getRegionID() {
         if (isRootRegion()) {
             return id;
@@ -110,11 +123,33 @@ int ConnectedRegions::getRegionsCount() {
 ConnectedRegion* ConnectedRegions::getRegionByID(uint16_t id) {
     return &(allRegions[id]);
 }
+   
+void ConnectedRegions::getSortedRegions(list<ConnectedRegion> &regions, int maxRegionsCount) {
+    int regionsCount = getRegionsCount();
+    for (int i = 0; i < regionsCount; i++) {
+        regions.push_front(*uniqueRegions[i]);
+    }
+    regions.sort();
     
+    if (maxRegionsCount < regions.size()) {
+        list<ConnectedRegion>::iterator regionIter;
+        int i = 0;
+        
+        for (regionIter = regions.begin(); regionIter != regions.end(); i++) {
+            if (i <= maxRegionsCount) {
+                regionIter++;
+            } else {
+                regionIter = regions.erase(regionIter);
+            }
+        }
+    }
+}
+
 ConnectedRegions::ConnectedRegions() {
         nextID = 0;
         uniqueRegionsCount = 0;
 }
+
 
     
 

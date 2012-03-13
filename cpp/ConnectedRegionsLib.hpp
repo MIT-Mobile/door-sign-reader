@@ -4,7 +4,7 @@
 #include "ConnectedRegions.hpp"
 
 // Source MAT needs to be 1 byte 1 channel
-// Destination MAT needs to be 1 byte 1 channel
+// Destination MAT needs to be 2 byte 1 channel
 
 
 std::auto_ptr<ConnectedRegions> findConnectedRegions(cv::Mat source, cv::Mat dest);
