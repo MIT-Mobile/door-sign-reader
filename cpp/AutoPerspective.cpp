@@ -1,5 +1,5 @@
 #include "AutoPerspective.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
+#include <OpenCV/opencv2/imgproc/imgproc.hpp>
 
 using namespace cv;
 
@@ -113,16 +113,20 @@ CorrectionType removePerspective(cv::Mat &image, cv::Mat &dest) {
     }
 
     
+    CorrectionType correctionType = X_Y_CORRECTION;
+    
     // if only one point found, guess
     // the other point is simple a 90 degree rotation
     if (!xPointFound && yPointFound) {
         //LOGD("x vanishing point not found");
         vpX.setPointAtInfinity(vpY.y, -vpY.x); 
+        correctionType = Y_CORRECTION;
     }
     
     if (!yPointFound && xPointFound) {
         //LOGD("y vanishing point not found");
         vpY.setPointAtInfinity(-vpX.y, vpX.x); 
+        correctionType = X_CORRECTION;
     }
     
 
@@ -147,6 +151,7 @@ CorrectionType removePerspective(cv::Mat &image, cv::Mat &dest) {
     */
     
     warpPerspective(image, dest, map, dest.size(), CV_WARP_INVERSE_MAP);  
+    return correctionType;
 }
 
 bool areLinesCandidatesToComputePerspective(LineSets &lineSets) {
